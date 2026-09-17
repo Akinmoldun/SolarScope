@@ -1,6 +1,6 @@
-# [Project name]
+# SolarScope Simulator
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+SolarScope is an interactive solar-farm simulation that helps non-experts compare fixed, single-axis, and dual-axis panel tracking through visible physics and a simple investment model.
 
 ## Run & Operate
 
@@ -22,15 +22,21 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/solar-scope/src/App.tsx` — the interactive simulator surface and UI state.
+- `artifacts/solar-scope/src/lib/simulation.ts` — deterministic solar position, power, energy, and payback calculations.
+- `artifacts/solar-scope/src/index.css` — the visual system and responsive presentation layout.
+- `docs/solar-scope-project-guide.md` — proposal, scope, simulation explanation, class diagram, task plan, presentation plan, and report outline.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The first version is client-side and deterministic so every demonstration result is reproducible and explainable.
+- The model uses transparent approximations instead of external weather or solar APIs.
+- Panel strategies are compared through one shared calculation path so changes in assumptions affect all three curves consistently.
+- The app prioritizes visible relationships—Sun position, incidence angle, energy, and payback—over detailed engineering fidelity.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Users can change panel count, efficiency, cloud cover, shading, electricity price, and tracker hardware cost; animate a day; compare three tracking architectures; inspect power and energy charts; and read a model-based investment recommendation.
 
 ## User preferences
 
