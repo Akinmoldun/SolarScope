@@ -166,4 +166,9 @@ Run from the repository root:
 
 ## License
 
-MIT
+This project is licensed under a custom license based on the [MIT License](LICENSE), with two additional restrictions:
+
+- **Attribution required**: anyone who uses, shares, or talks about the project or its derivatives must credit the creator, Akinmoldun, and link back to the [original repository](https://github.com/Akinmoldun/SolarScope).
+- **No selling**: the project or its derivatives may not be sold or included in paid products or services without prior written permission from the copyright holder.
+
+See the [LICENSE](LICENSE) file for full terms.
