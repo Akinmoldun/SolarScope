@@ -1,0 +1,1 @@
+- [WebGL preview limitation](webgl-preview.md) — managed previews may lack a hardware WebGL context; feature-detect and require a GPU browser for visual scene verification.

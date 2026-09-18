@@ -22,9 +22,10 @@ SolarScope is an interactive solar-farm simulation that helps non-experts compar
 
 ## Where things live
 
-- `artifacts/solar-scope/src/App.tsx` — the interactive simulator surface and UI state.
-- `artifacts/solar-scope/src/lib/simulation.ts` — deterministic solar position, power, energy, and payback calculations.
-- `artifacts/solar-scope/src/index.css` — the visual system and responsive presentation layout.
+- `artifacts/solar-scope/src/App.tsx` — the simulator controls, metrics, investor readout, and power curve.
+- `artifacts/solar-scope/src/lib/simulation.ts` — deterministic solar position, 3D orientation classes, power, energy, and payback calculations.
+- `artifacts/solar-scope/src/components/solar-scene.tsx` — the real Three.js / React Three Fiber field, Sun, rays, clouds, shading object, shadows, and camera controls.
+- `artifacts/solar-scope/src/index.css` — the dark scientific presentation layout and responsive styling.
 - `docs/solar-scope-project-guide.md` — proposal, scope, simulation explanation, class diagram, task plan, presentation plan, and report outline.
 
 ## Architecture decisions
@@ -32,11 +33,11 @@ SolarScope is an interactive solar-farm simulation that helps non-experts compar
 - The first version is client-side and deterministic so every demonstration result is reproducible and explainable.
 - The model uses transparent approximations instead of external weather or solar APIs.
 - Panel strategies are compared through one shared calculation path so changes in assumptions affect all three curves consistently.
-- The app prioritizes visible relationships—Sun position, incidence angle, energy, and payback—over detailed engineering fidelity.
+- The scene uses real WebGL meshes and lighting, but the model remains separate so the physics is explainable without hiding it inside rendering code.
 
 ## Product
 
-Users can change panel count, efficiency, cloud cover, shading, electricity price, and tracker hardware cost; animate a day; compare three tracking architectures; inspect power and energy charts; and read a model-based investment recommendation.
+Users can orbit a 3D solar field, change panel count, efficiency, cloud cover, shading, electricity price, and tracker hardware cost; animate a day; compare three tracking architectures in one scene or side by side; inspect power and energy charts; and read a model-based investment recommendation.
 
 ## User preferences
 
