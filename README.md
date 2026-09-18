@@ -150,6 +150,7 @@ Run from the repository root:
 | Symptom | Fix |
 | --- | --- |
 | `Error: Use pnpm instead` during install | You used npm/yarn. Run `pnpm install` instead. |
+| `'sh' is not recognized as an internal or external command` during install on Windows | This was a bug in older versions of this repo. Run `git pull` to get the fixed cross-platform install script. |
 | `PORT environment variable is required but was not provided.` (or the same for `BASE_PATH`) | The Vite config requires both env vars. Prefix the dev command as shown in Step 3. |
 | `pnpm: command not found` | Run `corepack enable`, or `npm install -g pnpm`. |
 | Port already in use | Change `PORT=5173` to any free port, e.g. `PORT=3000`, and open that URL instead. |
