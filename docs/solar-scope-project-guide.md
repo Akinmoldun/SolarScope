@@ -2,7 +2,7 @@
 
 ## Short project proposal
 
-SolarScope is an interactive simulation that demonstrates how the position of the Sun, panel orientation, weather, shading, and tracking hardware affect solar-panel energy production. Users can compare fixed, single-axis, and dual-axis solar arrays through animation, graphs, and a simple return-on-investment estimate, allowing them to evaluate when a more expensive tracking system is commercially worthwhile.
+SolarScope is a Three.js-powered interactive simulation that demonstrates how the position of the Sun, panel orientation, weather, shading, and tracking hardware affect solar-panel energy production. Users can orbit a real 3D solar field, compare fixed, single-axis, and dual-axis arrays through animation and graphs, and use a simple return-on-investment estimate to evaluate when a more expensive tracking system is commercially worthwhile.
 
 ## Project scope
 
@@ -12,13 +12,13 @@ SolarScope is intentionally a solo-project scope. It models one solar field and 
 - Single-axis tracking: follows the Sun from east to west.
 - Dual-axis tracking: follows both the Sun's east-west and altitude movement.
 
-The user can change panel count, module efficiency, cloud cover, nearby shading, electricity price, and tracker hardware cost. The application responds with a live sky model, current power, daily energy, annual energy value, a through-the-day comparison chart, and a recommended investment path.
+The user can orbit, zoom, and pan around the field; change panel count, module efficiency, cloud cover, nearby shading, electricity price, and tracker hardware cost; and switch to an optional three-field comparison view. The application responds with a moving 3D Sun, physically rotated panel meshes, visible sunlight rays, a tree that casts shadows, current power, daily energy, annual energy value, a through-the-day comparison chart, and a recommended investment path.
 
 The simulation is an educational model rather than an engineering quotation. Its value is that every assumption is visible and every output can be traced back to a small number of understandable equations.
 
 ## Technical approach
 
-SolarScope is a client-side React and TypeScript application. The simulation is deterministic: the same inputs always produce the same outputs, which makes the tool reliable during a presentation and easy to validate with hand calculations.
+SolarScope is a client-side React, TypeScript, Three.js, and React Three Fiber application. The simulation is deterministic: the same inputs always produce the same outputs, which makes the tool reliable during a presentation and easy to validate with hand calculations. The numerical model is kept in `src/lib/simulation.ts`; the WebGL rendering interface is kept in `src/components/solar-scene.tsx`.
 
 For each time step in the selected day:
 
@@ -30,25 +30,41 @@ For each time step in the selected day:
 6. Add power over the time interval to estimate daily energy.
 7. Convert daily energy into annual energy value and a simple payback period.
 
-The central educational equation is:
+The central educational equation shown in the interface is:
 
 ```text
-P = A × η × G × daylight × cos(θ) × cloudFactor × shadeFactor
+P = N × A × η × I × max(0, cos θ) × C × (1 − S)
 ```
 
 Where:
 
+- `N` is the number of modules.
 - `A` is the total panel area.
 - `η` is module efficiency.
-- `G` is peak solar irradiance.
+- `I` is peak solar irradiance.
 - `θ` is the angle between the Sun's rays and the panel normal.
-- `cloudFactor` and `shadeFactor` reduce the available light.
+- `C` is the effective cloud multiplier and `S` is the effective shading fraction.
 
-The model uses a 15-minute step for daily energy and a continuous slider for the animated time readout. The Sun is above the horizon from 5:30 AM to 6:30 PM, reaches a simplified 64-degree altitude at noon, and is drawn as a moving point in the visual stage.
+The model uses a 15-minute step for daily energy and a continuous slider for the animated time readout. The Sun is above the horizon from 5:30 AM to 6:30 PM, reaches a simplified 64-degree altitude at noon, and drives both the calculation and the 3D light position.
+
+## 3D scene approach
+
+The primary visual is a real WebGL scene rather than a flat dashboard illustration:
+
+- Each visible module is a box mesh with thickness, frame rails, cell separators, a support post, and a footing.
+- `FixedPanel`, `SingleAxisTracker`, and `DualAxisTracker` produce different 3D orientations from the same Sun position.
+- `Sun` maps the simulated altitude and azimuth to a moving 3D light source and emissive Sun mesh.
+- Gold dashed lines visualize the incoming sunlight direction.
+- `SolarField` lays out the modules in rows and columns.
+- `ShadingObject` represents a tree with trunk and foliage; it casts a real shadow when WebGL shadows are available.
+- `OrbitControls` provides camera orbit, zoom, and pan. The optional comparison mode places three smaller fields side by side under the same Sun.
+- `CloudLayer` changes its visible opacity from the cloud-cover control.
+
+The 3D scene is intentionally separated from the model. A presenter can explain the mathematics without needing to understand React Three Fiber, and can explain the scene components without treating rendering code as physics.
 
 ## Why the model is simplified
 
-The application does not attempt to reproduce a particular site's complete atmospheric, electrical, or mechanical behavior. It omits temperature coefficients, inverter losses, latitude/longitude calculations, maintenance, battery storage, seasonal weather, and detailed row geometry. These are appropriate future enhancements, but including them in the first version would make the code harder to explain without improving the central demonstration.
+The application does not attempt to reproduce a particular site's complete atmospheric, electrical, or mechanical behavior. It omits temperature coefficients, inverter losses, latitude/longitude calculations, maintenance, battery storage, seasonal weather, and detailed row geometry. The tree provides a visible 3D shading object, but the current power equation uses the user-controlled shading fraction as the transparent educational input. These are appropriate future enhancements, but including them in the first version would make the code harder to explain without improving the central demonstration.
 
 ## Three-week solo task plan
 
@@ -91,8 +107,8 @@ classDiagram
     class SolarPanel {
         <<base class>>
         +area: number
-        +efficiency: number
-        +orientationFor(sunPosition)
+        +orientationFor(sun)
+        +incidenceAngle(sun)
     }
     class FixedPanel {
         +orientationFor(sunPosition)
@@ -101,12 +117,26 @@ classDiagram
         +orientationFor(sunPosition)
     }
     class DualAxisTracker {
-        +orientationFor(sunPosition)
+        +orientationFor(sun)
+    }
+    class Sun {
+        +positionAt(time)
+    }
+    class SolarField {
+        +rows: number
+        +columns: number
+        +positions()
+    }
+    class ShadingObject {
+        +position: vector3
+        +estimatedFraction(shading)
     }
     SolarPanel <|-- FixedPanel
     SolarPanel <|-- SingleAxisTracker
     SolarPanel <|-- DualAxisTracker
-
+    Sun ..> SolarPanel : supplies position
+    SolarField --> SolarPanel : lays out modules
+    ShadingObject ..> SolarField : casts shadow
 ```
 
 The rest of the implementation is organized as functions and data:
@@ -114,9 +144,14 @@ The rest of the implementation is organized as functions and data:
 - `solarPosition`, `powerAt`, `simulateDay`, and `projectAt` form the simulation pipeline.
 - `dailyEnergy`, `annualValue`, `capitalCost`, and `paybackYears` form the financial readout.
 - `recommendation` evaluates all three strategies with the same scenario inputs.
-- React components handle controls, animation, chart rendering, and display.
+- `src/components/solar-scene.tsx` handles the Canvas, lighting, shadows, meshes, camera controls, comparison fields, cloud layer, and 3D labels.
+- React components in `App.tsx` handle controls, animation, chart rendering, and display.
 
 This is an intentional alternative to a deep hierarchy: the only behavior that varies by type is panel tracking, so only that behavior uses inheritance.
+
+## Verification note
+
+Type checking and the production build pass. The shared preview environment used for development reports that it cannot create a hardware WebGL context, so it shows the explicit WebGL-unavailable message instead of a crash overlay. The actual Three.js scene is implemented in the code and must be checked in a hardware-accelerated browser before the final presentation; that browser check is a required final project step, not a claim made by this preview.
 
 ## Presentation plan: approximately six minutes
 
