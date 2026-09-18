@@ -151,6 +151,8 @@ Run from the repository root:
 | --- | --- |
 | `Error: Use pnpm instead` during install | You used npm/yarn. Run `pnpm install` instead. |
 | `'sh' is not recognized as an internal or external command` during install on Windows | This was a bug in older versions of this repo. Run `git pull` to get the fixed cross-platform install script. |
+| `Cannot find module @rollup/rollup-win32-x64-msvc` (or a similar missing platform binary) | Older versions of this repo excluded non-Linux binaries. Run `git pull`, then delete `node_modules` and reinstall (`rmdir /s /q node_modules` on Windows), so pnpm fetches the binaries for your OS. |
+| `Ignored build scripts: esbuild` | On the `pnpm approve-builds` prompt, select esbuild with Space, then confirm with Enter (do not just press Enter with nothing selected). Newer clones already allow it via the workspace config. |
 | `PORT environment variable is required but was not provided.` (or the same for `BASE_PATH`) | The Vite config requires both env vars. Prefix the dev command as shown in Step 3. |
 | `pnpm: command not found` | Run `corepack enable`, or `npm install -g pnpm`. |
 | Port already in use | Change `PORT=5173` to any free port, e.g. `PORT=3000`, and open that URL instead. |
