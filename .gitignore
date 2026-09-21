@@ -8,6 +8,10 @@ out-tsc
 .expo
 .expo-shared
 
+# generated Vercel serverless bundle (built by artifacts/api-server/build.mjs)
+artifacts/api-server/api/*
+!artifacts/api-server/api/package.json
+
 # dependencies
 node_modules
 

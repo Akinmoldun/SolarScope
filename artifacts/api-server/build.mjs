@@ -14,6 +14,22 @@ async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
   await rm(distDir, { recursive: true, force: true });
 
+  // Bundles the serverless handler for Vercel. Fully bundled (no externals)
+  // so the api/ directory is self-contained: @workspace/* TS sources and all
+  // node_modules deps are inlined, and Vercel has nothing to resolve.
+  // No pino transport plugin here: on Vercel NODE_ENV=production the logger
+  // runs without transports, so no worker chunks are needed.
+  await esbuild({
+    entryPoints: [path.resolve(artifactDir, "src/api.ts")],
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    target: "node20",
+    outfile: path.resolve(artifactDir, "api/index.js"),
+    logLevel: "info",
+    sourcemap: false,
+  });
+
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],
     platform: "node",
