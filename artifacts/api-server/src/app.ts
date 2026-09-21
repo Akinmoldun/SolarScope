@@ -1,3 +1,4 @@
+// SolarScope API server — Express app with pino-http request logging.
 import express, { type Express } from "express";
 import cors from "cors";
 import { pinoHttp } from "pino-http";
