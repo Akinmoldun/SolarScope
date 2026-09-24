@@ -16,7 +16,7 @@ const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 // handled by the serverless function in api/index.js.
 const staticDir = path.resolve(artifactDir, "dist");
 
-// Long-running server bundle for `pnpm run start` (Replit dev). Kept out of
+// Long-running server bundle for `pnpm run start` (local dev). Kept out of
 // dist/ so server bundles and sourcemaps are never served as public files.
 const serverDistDir = path.resolve(artifactDir, "dist-server");
 
