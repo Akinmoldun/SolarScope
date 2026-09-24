@@ -2,11 +2,24 @@
 
 # compiled output
 dist
+dist-server
 tmp
 out-tsc
 *.tsbuildinfo
 .expo
 .expo-shared
+
+# generated Vercel serverless bundle (built by artifacts/api-server/build.mjs)
+artifacts/api-server/api/*
+!artifacts/api-server/api/package.json
+
+# Vercel CLI local state
+.vercel
+
+# Environment files (real values are never committed; see .env.example)
+.env
+.env.local
+.env.*.local
 
 # dependencies
 node_modules
@@ -44,6 +57,6 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
-# Replit
+# Local tool cache directories
 .cache/
 .local/

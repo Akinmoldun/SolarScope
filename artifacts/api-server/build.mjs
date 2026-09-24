@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
+import { cpSync, existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
@@ -10,16 +11,54 @@ globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 
+// Static web output served by Vercel. The solar-scope frontend (see vercel.json
+// buildCommand) is published here so `/` serves the app UI, while /api/* is
+// handled by the serverless function in api/index.js.
+const staticDir = path.resolve(artifactDir, "dist");
+
+// Long-running server bundle for `pnpm run start` (local dev). Kept out of
+// dist/ so server bundles and sourcemaps are never served as public files.
+const serverDistDir = path.resolve(artifactDir, "dist-server");
+
+// Where the solar-scope frontend writes its build (vite.config.ts build.outDir).
+const frontendDistDir = path.resolve(artifactDir, "../solar-scope/dist/public");
+
 async function buildAll() {
-  const distDir = path.resolve(artifactDir, "dist");
-  await rm(distDir, { recursive: true, force: true });
+  await rm(staticDir, { recursive: true, force: true });
+  await rm(serverDistDir, { recursive: true, force: true });
+
+  // vercel.json builds the frontend before this script; when its output is
+  // present, publish it as the static site. (Locally the frontend may not have
+  // been built — skip silently so `pnpm run dev` keeps working.)
+  if (existsSync(frontendDistDir)) {
+    cpSync(frontendDistDir, staticDir, { recursive: true });
+    console.log(
+      `copied frontend build ${path.relative(artifactDir, frontendDistDir)} -> ${path.relative(artifactDir, staticDir)}`,
+    );
+  }
+
+  // Bundles the serverless handler for Vercel. Fully bundled (no externals)
+  // so the api/ directory is self-contained: @workspace/* TS sources and all
+  // node_modules deps are inlined, and Vercel has nothing to resolve.
+  // No pino transport plugin here: on Vercel NODE_ENV=production the logger
+  // runs without transports, so no worker chunks are needed.
+  await esbuild({
+    entryPoints: [path.resolve(artifactDir, "src/api.ts")],
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    target: "node20",
+    outfile: path.resolve(artifactDir, "api/index.js"),
+    logLevel: "info",
+    sourcemap: false,
+  });
 
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],
     platform: "node",
     bundle: true,
     format: "esm",
-    outdir: distDir,
+    outdir: serverDistDir,
     outExtension: { ".js": ".mjs" },
     logLevel: "info",
     // Some packages may not be bundleable, so we externalize them, we can add more here as needed.
