@@ -51,6 +51,7 @@ async function buildAll() {
     outfile: path.resolve(artifactDir, "api/index.js"),
     logLevel: "info",
     sourcemap: false,
+    minify: true,
   });
 
   await esbuild({
@@ -61,6 +62,7 @@ async function buildAll() {
     outdir: serverDistDir,
     outExtension: { ".js": ".mjs" },
     logLevel: "info",
+    minify: true,
     // Some packages may not be bundleable, so we externalize them, we can add more here as needed.
     // Some of the packages below may not be imported or installed, but we're adding them in case they are in the future.
     // Examples of unbundleable packages:
