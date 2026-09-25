@@ -51,7 +51,9 @@ The deployed app is fully client-side; the API server is an optional companion t
 └── pnpm-workspace.yaml
 ```
 
-## Getting Started
+## Getting Started (Run It Locally)
+
+Works on Windows, macOS, and Linux — every command below is plain `pnpm` with no shell-specific syntax. Only the two tools below are needed; no environment variables, no database.
 
 ### Prerequisites
 
@@ -65,7 +67,18 @@ The deployed app is fully client-side; the API server is an optional companion t
 
    > If `corepack` isn't available, install pnpm manually: `npm install -g pnpm`.
 
-### Install and run
+### Quick start (2 commands)
+
+```bash
+pnpm install
+pnpm --filter @workspace/solar-scope run dev
+```
+
+Open <http://localhost:5173/>, press **Play**, and watch the panels track the sun. That's it — the simulator needs no configuration (the Vite config defaults to `PORT=5173`, `BASE_PATH=/`). The first install takes a minute or two while dependencies download, and your browser needs WebGL enabled for the 3D scene.
+
+### Step by step
+
+**1. Clone and install** — from any terminal (Windows: PowerShell, Command Prompt, or Git Bash; macOS/Linux: any shell):
 
 ```bash
 git clone https://github.com/Akinmoldun/SolarScope.git
@@ -73,13 +86,16 @@ cd SolarScope
 pnpm install
 ```
 
-Then start the simulator (no environment variables needed — the Vite config defaults to `PORT=5173`, `BASE_PATH=/`):
+> `pnpm install` may ask to approve build scripts — select `esbuild` with Space and confirm with Enter (see [Troubleshooting](#troubleshooting)).
 
-```bash
-pnpm --filter @workspace/solar-scope run dev
-```
+**2. Start what you need:**
 
-Open <http://localhost:5173/>, press **Play**, and watch the panels track the sun.
+| Command | What it does |
+| --- | --- |
+| `pnpm --filter @workspace/solar-scope run dev` | The simulator on <http://localhost:5173> with hot reload — **this is all you need**. |
+| `pnpm --filter @workspace/api-server run dev` | Optional Express API on port 3000 (`GET /api/healthz`). Set `DATABASE_URL` and `PORT` (e.g. `3000`) first (see [Environment Variables](#environment-variables)). |
+
+**3. Stop the dev server** with `Ctrl + C` when you're done.
 
 ### Production build (local)
 
@@ -87,6 +103,8 @@ Open <http://localhost:5173/>, press **Play**, and watch the panels track the su
 pnpm --filter @workspace/solar-scope run build   # static files in artifacts/solar-scope/dist/public
 pnpm --filter @workspace/solar-scope run serve   # serve the built bundle locally
 ```
+
+`pnpm --filter @workspace/solar-scope run serve` (Vite preview) prints the port it binds to and honors `PORT`. Set `BASE_PATH` before building if you plan to serve the app from a sub-path.
 
 ### Typecheck and full workspace build
 
@@ -97,7 +115,7 @@ pnpm run build       # typecheck + build every package
 
 ## Environment Variables
 
-Copy `.env.example` to `.env.local` and fill in only what you use. Real values are never committed. None of these are required to run the simulator.
+None of these are required to run the simulator — skip this section entirely for local development. If you need one (e.g. for the optional API server), copy `.env.example` (in the repo root) to `.env.local` and fill in only what you use. Real values are never committed.
 
 | Variable       | Used by                | Default   | Purpose                                                     |
 | -------------- | ---------------------- | --------- | ----------------------------------------------------------- |
@@ -108,14 +126,39 @@ Copy `.env.example` to `.env.local` and fill in only what you use. Real values a
 
 ## Optional API Server
 
+macOS / Linux (bash, zsh):
+
 ```bash
 DATABASE_URL=postgres://user:password@localhost:5432/solarscope PORT=3000 \
   pnpm --filter @workspace/api-server run dev
 ```
 
+Windows (PowerShell):
+
+```powershell
+$env:DATABASE_URL = "postgres://user:password@localhost:5432/solarscope"; $env:PORT = "3000"
+pnpm --filter @workspace/api-server run dev
+```
+
+Or set the variables in `.env.local` — no shell syntax needed, on any OS.
+
 - `GET /api/healthz` → `{"status":"ok"}`
 - Routes are validated with Zod schemas generated from [`lib/api-spec/openapi.yaml`](lib/api-spec/openapi.yaml); regenerate clients with `pnpm --filter @workspace/api-spec run codegen`.
 - Push database schema changes (dev only): `pnpm --filter @workspace/db run push`.
+
+## Load Testing (Stress Testing)
+
+The repo ships a zero-dependency load tester (`scripts/load-test.mjs`) used to stress test the API and the built frontend:
+
+```bash
+node scripts/load-test.mjs --url http://localhost:5173/ --conns 8 --duration 10
+node scripts/load-test.mjs --url http://localhost:3000/api/healthz --conns 150 --duration 20 --label saturation
+node scripts/load-test.mjs --url https://your-deployment.example.com/api/healthz --conns 50 --duration 30 --json
+```
+
+Key flags: `--url` (required), `--conns` (concurrent workers, default 8), `--duration` (seconds, default 10), `--rate` (target req/s; omit to go as fast as possible), `--timeout`, `--warmup`, `--label`, `--json` (machine-readable output). It is also available as `pnpm load-test` from the repo root. Reference results from stress testing this repo locally: ~3.2–3.9k req/s against `/api/healthz` and the static bundle with zero errors at up to 150 concurrent connections.
+
+To load test the built frontend the way a CDN would serve it, build it, then run `node scripts/static-server.mjs artifacts/solar-scope/dist/public 4173` and point the tool at `http://localhost:4173/`.
 
 ## Deployment (Vercel)
 
@@ -141,7 +184,8 @@ The app is a single-page simulator at `/`; unknown `/api/*` paths return a 404 J
 | `Error: Use pnpm instead` during install | You used npm/yarn. Run `pnpm install` instead. |
 | `Ignored build scripts: esbuild` | On the `pnpm approve-builds` prompt, select esbuild with Space, then confirm with Enter. Newer clones already allow it via the workspace config. |
 | `pnpm: command not found` | Run `corepack enable`, or `npm install -g pnpm`. |
-| Port already in use | Set `PORT=3000` (or any free port) when starting the dev server. |
+| `'export' is not recognized` (Windows) | Your clone predates the cross-platform script fix — pull the latest `main`. Don't set env vars inline with `NODE_ENV=... pnpm ...`; use `.env.local` or `$env:NODE_ENV = "development"` in PowerShell. |
+| Port already in use | Set `PORT=3000` (or any free port) when starting the dev server — bash: `PORT=3000 pnpm ...`, PowerShell: `$env:PORT = "3000"`, or put `PORT=3000` in `.env.local`. |
 | Blank page / 3D scene missing | Use a modern browser with WebGL enabled (Chrome, Edge, Firefox, Safari). Try a hard refresh (`Ctrl/Cmd + Shift + R`). |
 | Engine / Node version warnings | Make sure `node -v` reports 20.19+, 22.12+, or 24. |
 
